@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Science Game - Periodic Quiz</title>
+  <style>
+    body {
+      font-family: 'Trebuchet MS', sans-serif;
+      text-align: center;
+      background: radial-gradient(circle at center, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+      text-shadow: 0 0 10px #00f7ff, 0 0 20px #00f7ff;
+      animation: glow 2s infinite alternate;
+    }
+
+    @keyframes glow {
+      from { text-shadow: 0 0 10px #00f7ff, 0 0 20px #00f7ff; }
+      to   { text-shadow: 0 0 20px #ffdd57, 0 0 40px #ffdd57; }
+    }
+
+    #game {
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 25px;
+      max-width: 500px;
+      margin: auto;
+      box-shadow: 0 0 20px rgba(0,255,255,0.5);
+      animation: fadeIn 1s ease-in;
+      display: none; /* hidden until start */
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    #question {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #00f2fe, #4facfe);
+      color: #fff;
+      border: none;
+      padding: 12px 25px;
+      margin: 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px #00f7ff, 0 0 30px #00f7ff;
+    }
+
+    #result {
+      font-size: 20px;
+      margin-top: 15px;
+      min-height: 30px;
+      font-weight: bold;
+    }
+
+    #scoreBox {
+      margin-top: 20px;
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.3);
+      display: inline-block;
+      box-shadow: 0 0 15px rgba(255,255,255,0.3);
+    }
+
+    /* Floating atoms in background */
+    .atom {
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      border: 2px solid #00f7ff;
+      border-radius: 50%;
+      animation: float 10s infinite ease-in-out;
+      opacity: 0.6;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0); }
+      50% { transform: translateY(-50px) rotate(180deg); }
+      100% { transform: translateY(0) rotate(360deg); }
+    }
+
+    #startBtn {
+      margin-top: 50px;
+      padding: 15px 40px;
+      font-size: 20px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #ffdd57, #ff884d);
+      color: #333;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(255,221,87,0.8);
+      transition: 0.3s;
+    }
+
+    #startBtn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 25px rgba(255,136,77,1);
+    }
+  </style>
+</head>
+<body>
+  <h1>⚛️ Periodic Table Quiz</h1>
+
+  <!-- Start Button -->
+  <button id="startBtn">▶ Start Game</button>
+
+  <!-- Game Box -->
+  <div id="game">
+    <p id="question">Loading...</p>
+    <div id="choices"></div>
+    <p id="result"></p>
+    <div id="scoreBox">Score: <span id="score">0</span></div>
+  </div>
+
+  <!-- Floating atoms -->
+  <div class="atom" style="top:10%; left:20%; animation-duration: 12s;"></div>
+  <div class="atom" style="top:40%; left:80%; animation-duration: 15s;"></div>
+  <div class="atom" style="top:70%; left:10%; animation-duration: 18s;"></div>
+  <div class="atom" style="top:85%; left:60%; animation-duration: 20s;"></div>
+
+  <!-- Background Music -->
+  <audio id="bgMusic" loop>
+    <source src="science-background-music-for-video-by-maxkomusic-free-download-128-ytshorts.savetube.me.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Ding Sound -->
+  <audio id="ding">
+    <source src="correct-answer-sound-effect-no-copyright-128-ytshorts.savetube.me.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const questions = [
+      { element: "Hydrogen", symbol: "H" },
+      { element: "Oxygen", symbol: "O" },
+      { element: "Carbon", symbol: "C" },
+      { element: "Nitrogen", symbol: "N" },
+      { element: "Helium", symbol: "He" },
+      { element: "Sodium", symbol: "Na" },
+      { element: "Iron", symbol: "Fe" },
+      { element: "Gold", symbol: "Au" },
+      { element: "Silver", symbol: "Ag" },
+      { element: "Calcium", symbol: "Ca" }
+    ];
+
+    let score = 0;
+    let currentQuestion;
+
+    function newQuestion() {
+      const randomIndex = Math.floor(Math.random() * questions.length);
+      currentQuestion = questions[randomIndex];
+      document.getElementById("question").innerText = 
+        `What is the symbol for ${currentQuestion.element}?`;
+
+      const choicesDiv = document.getElementById("choices");
+      choicesDiv.innerHTML = "";
+
+      let wrongOptions = questions
+        .filter(q => q.symbol !== currentQuestion.symbol)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+
+      let options = [...wrongOptions.map(q => q.symbol), currentQuestion.symbol]
+        .sort(() => 0.5 - Math.random());
+
+      options.forEach(symbol => {
+        let btn = document.createElement("button");
+        btn.innerText = symbol;
+        btn.onclick = () => checkAnswer(symbol, btn);
+        choicesDiv.appendChild(btn);
+      });
+    }
+
+    function checkAnswer(answer, btn) {
+      const result = document.getElementById("result");
+      const ding = document.getElementById("ding");
+
+      if (answer === currentQuestion.symbol) {
+        result.innerText = "✅ Correct!";
+        result.style.color = "#00ff88";
+        btn.style.background = "linear-gradient(135deg, #00ff88, #4facfe)";
+        score++;
+        ding.currentTime = 0; // reset sound
+        ding.play(); // play immediately
+      } else {
+        result.innerText = `❌ Wrong! The correct answer is ${currentQuestion.symbol}`;
+        result.style.color = "#ff5555";
+        btn.style.background = "linear-gradient(135deg, #ff5555, #4facfe)";
+      }
+
+      document.getElementById("score").innerText = score;
+
+      // Wait before showing next question
+      setTimeout(newQuestion, 1500);
+    }
+
+    // Handle Start Button
+    document.getElementById("startBtn").addEventListener("click", () => {
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      const bgMusic = document.getElementById("bgMusic");
+      bgMusic.volume = 0.3;
+      bgMusic.play(); // start after user interaction
+      newQuestion();
+    });
+  </script>
+</body>
+</html>
