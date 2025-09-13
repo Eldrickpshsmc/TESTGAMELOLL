@@ -1,227 +1,589 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Science Game - Periodic Quiz</title>
-  <style>
-    body {
-      font-family: 'Trebuchet MS', sans-serif;
-      text-align: center;
-      background: radial-gradient(circle at center, #0f2027, #203a43, #2c5364);
-      color: #fff;
-      margin: 0;
-      padding: 20px;
-      overflow: hidden;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Integrated Science Game — Arcade</title>
+<style>
+  /* GAME STYLE — kept exactly like your preferred look with enhancements */
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-    h1 {
-      margin-bottom: 10px;
-      font-size: 2.5rem;
-      text-shadow: 0 0 10px #00f7ff, 0 0 20px #00f7ff;
-      animation: glow 2s infinite alternate;
-    }
+  :root{
+    --neon-a:#00ffea;
+    --neon-b:#ff00ff;
+    --button-bg:#111;
+  }
 
-    @keyframes glow {
-      from { text-shadow: 0 0 10px #00f7ff, 0 0 20px #00f7ff; }
-      to   { text-shadow: 0 0 20px #ffdd57, 0 0 40px #ffdd57; }
-    }
+  html,body{
+    height:100%;
+    margin:0;
+    padding:0;
+  }
 
-    #game {
-      background: rgba(255,255,255,0.1);
-      border-radius: 20px;
-      padding: 25px;
-      max-width: 500px;
-      margin: auto;
-      box-shadow: 0 0 20px rgba(0,255,255,0.5);
-      animation: fadeIn 1s ease-in;
-      display: none; /* hidden until start */
-    }
+  body{
+    font-family: 'Press Start 2P', cursive;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    background: linear-gradient(-45deg, #1a1a1a, #222, #333, #444);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+    color: #fff;
+    overflow:hidden;
+    line-height:1.8; /* fix overlap */
+    -webkit-font-smoothing:antialiased;
+  }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.9); }
-      to   { opacity: 1; transform: scale(1); }
-    }
+  @keyframes gradientShift{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+  }
 
-    #question {
-      font-size: 1.5rem;
-      margin-bottom: 15px;
-    }
+  /* Flying atoms canvas sits behind */
+  canvas#atomBackground{
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    z-index:-2;
+  }
 
-    button {
-      background: linear-gradient(135deg, #00f2fe, #4facfe);
-      color: #fff;
-      border: none;
-      padding: 12px 25px;
-      margin: 10px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-size: 18px;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
+  /* neon grid overlay subtle */
+  .grid-overlay{
+    position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background: radial-gradient(circle at 10% 20%, rgba(0,255,234,0.02), transparent 10%),
+                radial-gradient(circle at 90% 80%, rgba(255,0,255,0.02), transparent 10%);
+  }
 
-    button:hover {
-      transform: scale(1.1);
-      box-shadow: 0 0 20px #00f7ff, 0 0 30px #00f7ff;
-    }
+  /* container */
+  .game-container{
+    width:90%;
+    max-width:680px;
+    background: rgba(0,0,0,0.82);
+    border-radius:20px;
+    padding:22px;
+    box-shadow: 0 0 20px rgba(0,255,234,0.12), 0 0 40px rgba(255,0,255,0.06);
+    backdrop-filter: blur(4px);
+  }
 
-    #result {
-      font-size: 20px;
-      margin-top: 15px;
-      min-height: 30px;
-      font-weight: bold;
-    }
+  h1,h2{
+    margin:6px 0 14px 0;
+    color:var(--neon-a);
+    text-shadow:0 0 10px var(--neon-b);
+    font-size:1.1rem;
+  }
 
-    #scoreBox {
-      margin-top: 20px;
-      font-size: 18px;
-      padding: 10px;
-      border-radius: 10px;
-      background: rgba(0,0,0,0.3);
-      display: inline-block;
-      box-shadow: 0 0 15px rgba(255,255,255,0.3);
-    }
+  /* primary buttons (big touch targets) */
+  .big-btn{
+    display:block;
+    width:100%;
+    max-width:420px;
+    margin:10px auto;
+    padding:14px 18px;
+    background:var(--button-bg);
+    border:2px solid var(--neon-a);
+    color:#fff;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:0.95rem;
+    text-transform:uppercase;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s;
+    text-shadow:0 0 5px var(--neon-b);
+  }
 
-    /* Floating atoms in background */
-    .atom {
-      position: absolute;
-      width: 15px;
-      height: 15px;
-      border: 2px solid #00f7ff;
-      border-radius: 50%;
-      animation: float 10s infinite ease-in-out;
-      opacity: 0.6;
-    }
+  .big-btn:hover{
+    transform: scale(1.15);
+    background: var(--neon-a);
+    color:#111;
+    box-shadow: 0 0 12px var(--neon-a), 0 0 20px var(--neon-b);
+  }
 
-    @keyframes float {
-      0% { transform: translateY(0) rotate(0); }
-      50% { transform: translateY(-50px) rotate(180deg); }
-      100% { transform: translateY(0) rotate(360deg); }
-    }
+  /* choices buttons */
+  .choice-btn{
+    display:block;
+    width:90%;
+    max-width:460px;
+    margin:8px auto;
+    padding:12px;
+    font-size:0.9rem;
+    border-radius:12px;
+    border:2px solid var(--neon-a);
+    background: #111;
+    color:#fff;
+    cursor:pointer;
+    transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+  }
+  .choice-btn:hover{
+    transform: scale(1.10);
+    box-shadow: 0 0 12px var(--neon-a);
+    background: var(--neon-a);
+    color:#111;
+  }
 
-    #startBtn {
-      margin-top: 50px;
-      padding: 15px 40px;
-      font-size: 20px;
-      border-radius: 15px;
-      background: linear-gradient(135deg, #ffdd57, #ff884d);
-      color: #333;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 0 15px rgba(255,221,87,0.8);
-      transition: 0.3s;
-    }
+  /* feedback & score */
+  #feedback{ min-height:42px; margin-top:12px; color:var(--neon-b); font-size:0.9rem;}
+  #score{ margin-top:8px; color:var(--neon-a); font-size:0.95rem; }
 
-    #startBtn:hover {
-      transform: scale(1.1);
-      box-shadow: 0 0 25px rgba(255,136,77,1);
-    }
-  </style>
+  /* small screens tweaks */
+  @media(max-width:600px){
+    body{line-height:1.6}
+    .game-container{ padding:16px }
+    .big-btn{ padding:12px; font-size:0.88rem }
+    .choice-btn{ padding:10px; font-size:0.86rem }
+  }
+</style>
 </head>
 <body>
-  <h1>⚛️ Periodic Table Quiz</h1>
+  <canvas id="atomBackground"></canvas>
+  <div class="grid-overlay"></div>
 
-  <!-- Start Button -->
-  <button id="startBtn">▶ Start Game</button>
+  <div class="game-container">
+    <!-- INTRO -->
+    <div id="intro">
+      <h1>👋 Hello, welcome to the Integrated Science Game ⚡</h1>
+      <button class="big-btn" id="letsPlay">Let's Play</button>
+    </div>
 
-  <!-- Game Box -->
-  <div id="game">
-    <p id="question">Loading...</p>
-    <div id="choices"></div>
-    <p id="result"></p>
-    <div id="scoreBox">Score: <span id="score">0</span></div>
+    <!-- MENU (hidden until Let's Play) -->
+    <div id="menu" style="display:none;">
+      <h2>Choose a Game Mode</h2>
+      <button class="big-btn" onclick="startGame('elements')">⚛️ Periodic Elements Quiz</button>
+      <button class="big-btn" onclick="startGame('balancing')">⚖️ Chemical Balancing</button>
+      <button class="big-btn" onclick="startGame('astronomy')">🌌 Astronomy Quiz</button>
+      <button class="big-btn" onclick="startGame('biology')">🧬 Biology Quiz</button>
+    </div>
+
+    <!-- GAME -->
+    <div id="game" style="display:none;">
+      <h2 id="question">Question</h2>
+      <div id="choices"></div>
+      <div id="feedback"></div>
+      <div id="score">Score: <span id="scoreVal">0</span></div>
+      <button class="big-btn" onclick="endGame()">⏹ End Game</button>
+      <button class="big-btn" onclick="backToMenu()">🏠 Back to Menu</button>
+    </div>
+
+    <!-- END -->
+    <div id="end" style="display:none;">
+      <h2>Game Over!</h2>
+      <div id="finalScore" style="margin:14px 0; color:var(--neon-a)"></div>
+      <button class="big-btn" onclick="restartToMenu()">Play Again</button>
+    </div>
   </div>
 
-  <!-- Floating atoms -->
-  <div class="atom" style="top:10%; left:20%; animation-duration: 12s;"></div>
-  <div class="atom" style="top:40%; left:80%; animation-duration: 15s;"></div>
-  <div class="atom" style="top:70%; left:10%; animation-duration: 18s;"></div>
-  <div class="atom" style="top:85%; left:60%; animation-duration: 20s;"></div>
-
-  <!-- Background Music -->
+  <!-- Audio placeholders — replace with your files -->
   <audio id="bgMusic" loop>
     <source src="science-background-music-for-video-by-maxkomusic-free-download-128-ytshorts.savetube.me.mp3" type="audio/mpeg">
   </audio>
-
-  <!-- Ding Sound -->
-  <audio id="ding">
+  <audio id="dingSound">
     <source src="correct-answer-sound-effect-no-copyright-128-ytshorts.savetube.me.mp3" type="audio/mpeg">
   </audio>
 
-  <script>
-    const questions = [
-      { element: "Hydrogen", symbol: "H" },
-      { element: "Oxygen", symbol: "O" },
-      { element: "Carbon", symbol: "C" },
-      { element: "Nitrogen", symbol: "N" },
-      { element: "Helium", symbol: "He" },
-      { element: "Sodium", symbol: "Na" },
-      { element: "Iron", symbol: "Fe" },
-      { element: "Gold", symbol: "Au" },
-      { element: "Silver", symbol: "Ag" },
-      { element: "Calcium", symbol: "Ca" }
-    ];
+<script>
+/* -------------------------
+   Keep design EXACT — add heavy question banks and logic
+   - Full Periodic Table data included
+   - Larger astronomy & biology banks
+   - Balancing bank with balanced strings and distractor generator
+   - Intro triggers bg music
+   - Auto-next on correct, infinite play
+------------------------- */
 
-    let score = 0;
-    let currentQuestion;
+/* ---------- Assets & Data ---------- */
 
-    function newQuestion() {
-      const randomIndex = Math.floor(Math.random() * questions.length);
-      currentQuestion = questions[randomIndex];
-      document.getElementById("question").innerText = 
-        `What is the symbol for ${currentQuestion.element}?`;
+/* Full element list (name, symbol, atomic number) */
+const elements = [
+  {name:"Hydrogen",symbol:"H",num:1},{name:"Helium",symbol:"He",num:2},
+  {name:"Lithium",symbol:"Li",num:3},{name:"Beryllium",symbol:"Be",num:4},
+  {name:"Boron",symbol:"B",num:5},{name:"Carbon",symbol:"C",num:6},
+  {name:"Nitrogen",symbol:"N",num:7},{name:"Oxygen",symbol:"O",num:8},
+  {name:"Fluorine",symbol:"F",num:9},{name:"Neon",symbol:"Ne",num:10},
+  {name:"Sodium",symbol:"Na",num:11},{name:"Magnesium",symbol:"Mg",num:12},
+  {name:"Aluminium",symbol:"Al",num:13},{name:"Silicon",symbol:"Si",num:14},
+  {name:"Phosphorus",symbol:"P",num:15},{name:"Sulfur",symbol:"S",num:16},
+  {name:"Chlorine",symbol:"Cl",num:17},{name:"Argon",symbol:"Ar",num:18},
+  {name:"Potassium",symbol:"K",num:19},{name:"Calcium",symbol:"Ca",num:20},
+  {name:"Scandium",symbol:"Sc",num:21},{name:"Titanium",symbol:"Ti",num:22},
+  {name:"Vanadium",symbol:"V",num:23},{name:"Chromium",symbol:"Cr",num:24},
+  {name:"Manganese",symbol:"Mn",num:25},{name:"Iron",symbol:"Fe",num:26},
+  {name:"Cobalt",symbol:"Co",num:27},{name:"Nickel",symbol:"Ni",num:28},
+  {name:"Copper",symbol:"Cu",num:29},{name:"Zinc",symbol:"Zn",num:30},
+  {name:"Gallium",symbol:"Ga",num:31},{name:"Germanium",symbol:"Ge",num:32},
+  {name:"Arsenic",symbol:"As",num:33},{name:"Selenium",symbol:"Se",num:34},
+  {name:"Bromine",symbol:"Br",num:35},{name:"Krypton",symbol:"Kr",num:36},
+  {name:"Rubidium",symbol:"Rb",num:37},{name:"Strontium",symbol:"Sr",num:38},
+  {name:"Yttrium",symbol:"Y",num:39},{name:"Zirconium",symbol:"Zr",num:40},
+  {name:"Niobium",symbol:"Nb",num:41},{name:"Molybdenum",symbol:"Mo",num:42},
+  {name:"Technetium",symbol:"Tc",num:43},{name:"Ruthenium",symbol:"Ru",num:44},
+  {name:"Rhodium",symbol:"Rh",num:45},{name:"Palladium",symbol:"Pd",num:46},
+  {name:"Silver",symbol:"Ag",num:47},{name:"Cadmium",symbol:"Cd",num:48},
+  {name:"Indium",symbol:"In",num:49},{name:"Tin",symbol:"Sn",num:50},
+  {name:"Antimony",symbol:"Sb",num:51},{name:"Tellurium",symbol:"Te",num:52},
+  {name:"Iodine",symbol:"I",num:53},{name:"Xenon",symbol:"Xe",num:54},
+  {name:"Cesium",symbol:"Cs",num:55},{name:"Barium",symbol:"Ba",num:56},
+  {name:"Lanthanum",symbol:"La",num:57},{name:"Cerium",symbol:"Ce",num:58},
+  {name:"Praseodymium",symbol:"Pr",num:59},{name:"Neodymium",symbol:"Nd",num:60},
+  {name:"Promethium",symbol:"Pm",num:61},{name:"Samarium",symbol:"Sm",num:62},
+  {name:"Europium",symbol:"Eu",num:63},{name:"Gadolinium",symbol:"Gd",num:64},
+  {name:"Terbium",symbol:"Tb",num:65},{name:"Dysprosium",symbol:"Dy",num:66},
+  {name:"Holmium",symbol:"Ho",num:67},{name:"Erbium",symbol:"Er",num:68},
+  {name:"Thulium",symbol:"Tm",num:69},{name:"Ytterbium",symbol:"Yb",num:70},
+  {name:"Lutetium",symbol:"Lu",num:71},{name:"Hafnium",symbol:"Hf",num:72},
+  {name:"Tantalum",symbol:"Ta",num:73},{name:"Tungsten",symbol:"W",num:74},
+  {name:"Rhenium",symbol:"Re",num:75},{name:"Osmium",symbol:"Os",num:76},
+  {name:"Iridium",symbol:"Ir",num:77},{name:"Platinum",symbol:"Pt",num:78},
+  {name:"Gold",symbol:"Au",num:79},{name:"Mercury",symbol:"Hg",num:80},
+  {name:"Thallium",symbol:"Tl",num:81},{name:"Lead",symbol:"Pb",num:82},
+  {name:"Bismuth",symbol:"Bi",num:83},{name:"Polonium",symbol:"Po",num:84},
+  {name:"Astatine",symbol:"At",num:85},{name:"Radon",symbol:"Rn",num:86},
+  {name:"Francium",symbol:"Fr",num:87},{name:"Radium",symbol:"Ra",num:88},
+  {name:"Actinium",symbol:"Ac",num:89},{name:"Thorium",symbol:"Th",num:90},
+  {name:"Protactinium",symbol:"Pa",num:91},{name:"Uranium",symbol:"U",num:92},
+  {name:"Neptunium",symbol:"Np",num:93},{name:"Plutonium",symbol:"Pu",num:94},
+  {name:"Americium",symbol:"Am",num:95},{name:"Curium",symbol:"Cm",num:96},
+  {name:"Berkelium",symbol:"Bk",num:97},{name:"Californium",symbol:"Cf",num:98},
+  {name:"Einsteinium",symbol:"Es",num:99},{name:"Fermium",symbol:"Fm",num:100},
+  {name:"Mendelevium",symbol:"Md",num:101},{name:"Nobelium",symbol:"No",num:102},
+  {name:"Lawrencium",symbol:"Lr",num:103},{name:"Rutherfordium",symbol:"Rf",num:104},
+  {name:"Dubnium",symbol:"Db",num:105},{name:"Seaborgium",symbol:"Sg",num:106},
+  {name:"Bohrium",symbol:"Bh",num:107},{name:"Hassium",symbol:"Hs",num:108},
+  {name:"Meitnerium",symbol:"Mt",num:109},{name:"Darmstadtium",symbol:"Ds",num:110},
+  {name:"Roentgenium",symbol:"Rg",num:111},{name:"Copernicium",symbol:"Cn",num:112},
+  {name:"Nihonium",symbol:"Nh",num:113},{name:"Flerovium",symbol:"Fl",num:114},
+  {name:"Moscovium",symbol:"Mc",num:115},{name:"Livermorium",symbol:"Lv",num:116},
+  {name:"Tennessine",symbol:"Ts",num:117},{name:"Oganesson",symbol:"Og",num:118}
+];
 
-      const choicesDiv = document.getElementById("choices");
-      choicesDiv.innerHTML = "";
+/* Astronomy bank (expanded) */
+const astronomy = [
+  {q:"Which planet is known as the Red Planet?", options:["Mars","Venus","Jupiter","Mercury"], a:"Mars"},
+  {q:"Which planet has the most moons (as of common known count)?", options:["Saturn","Jupiter","Earth","Mars"], a:"Saturn"},
+  {q:"What galaxy is Earth in?", options:["Andromeda","Milky Way","Triangulum","Whirlpool"], a:"Milky Way"},
+  {q:"What is the name of our solar system's star?", options:["Sirius","Sun","Vega","Proxima Centauri"], a:"Sun"},
+  {q:"Which planet has a prominent ring system?", options:["Saturn","Mars","Earth","Venus"], a:"Saturn"},
+  {q:"What is a supernova?", options:["Exploding star","Planet","Black hole type","Small asteroid"], a:"Exploding star"},
+  {q:"What is the closest star to Earth (excluding the Sun)?", options:["Sirius","Proxima Centauri","Alpha Centauri A","Vega"], a:"Proxima Centauri"},
+  {q:"What force keeps planets in orbit around a star?", options:["Friction","Gravity","Magnetism","Electric force"], a:"Gravity"},
+  {q:"Which spacecraft was the first to land humans on the Moon?", options:["Apollo 11","Voyager 1","Sputnik","Curiosity"], a:"Apollo 11"},
+  {q:"What is the term for a moon that is noticeably bright and full?", options:["New Moon","Full Moon","Crescent","Gibbous"], a:"Full Moon"},
+  {q:"Which planet is known for its extreme greenhouse effect and high surface temperature?", options:["Venus","Mercury","Neptune","Uranus"], a:"Venus"},
+  {q:"What do we call a system of millions or billions of stars bound together by gravity?", options:["Nebula","Galaxy","Constellation","Asteroid belt"], a:"Galaxy"},
+  {q:"Which gas makes up most of Jupiter's atmosphere?", options:["Oxygen","Hydrogen","Carbon dioxide","Nitrogen"], a:"Hydrogen"},
+  {q:"What is an exoplanet?", options:["A planet orbiting another star","A dwarf planet","A comet type","A moon"], a:"A planet orbiting another star"},
+  {q:"Where is the asteroid belt located?", options:["Between Mars and Jupiter","Between Earth and Mars","Between Jupiter and Saturn","Beyond Neptune"], a:"Between Mars and Jupiter"}
+];
 
-      let wrongOptions = questions
-        .filter(q => q.symbol !== currentQuestion.symbol)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3);
+/* Biology bank (expanded) */
+const biology = [
+  {q:"What is the basic structural unit of life?", options:["Cell","Molecule","Atom","Organ"], a:"Cell"},
+  {q:"What organelle is the 'powerhouse' of the cell?", options:["Nucleus","Mitochondria","Ribosome","Golgi apparatus"], a:"Mitochondria"},
+  {q:"What process do plants use to convert light into chemical energy?", options:["Respiration","Photosynthesis","Fermentation","Transpiration"], a:"Photosynthesis"},
+  {q:"What macromolecule stores genetic information?", options:["Protein","Lipid","DNA","Carbohydrate"], a:"DNA"},
+  {q:"Which blood cells carry oxygen?", options:["White blood cells","Platelets","Red blood cells","Plasma"], a:"Red blood cells"},
+  {q:"What system in the body regulates hormones?", options:["Nervous system","Digestive system","Endocrine system","Skeletal system"], a:"Endocrine system"},
+  {q:"What are producers in an ecosystem?", options:["Herbivores","Plants","Carnivores","Decomposers"], a:"Plants"},
+  {q:"What helps plants absorb water from soil?", options:["Roots","Leaves","Flowers","Stem"], a:"Roots"},
+  {q:"Which biomolecule is primarily used for short-term energy?", options:["Proteins","Lipids","Carbohydrates","Nucleic acids"], a:"Carbohydrates"},
+  {q:"What term describes the variety of life in an area?", options:["Biome","Biodiversity","Ecosystem","Population"], a:"Biodiversity"}
+];
 
-      let options = [...wrongOptions.map(q => q.symbol), currentQuestion.symbol]
-        .sort(() => 0.5 - Math.random());
+/* Chemical balancing bank — balanced equation strings included */
+const balancingBank = [
+  { eq: "H2 + O2 → H2O", balanced: "2H2 + O2 → 2H2O" },
+  { eq: "C + O2 → CO2", balanced: "C + O2 → CO2" },
+  { eq: "CH4 + O2 → CO2 + H2O", balanced: "CH4 + 2O2 → CO2 + 2H2O" },
+  { eq: "Fe + O2 → Fe2O3", balanced: "4Fe + 3O2 → 2Fe2O3" },
+  { eq: "N2 + H2 → NH3", balanced: "N2 + 3H2 → 2NH3" },
+  { eq: "Ca + O2 → CaO", balanced: "2Ca + O2 → 2CaO" },
+  { eq: "KClO3 → KCl + O2", balanced: "2KClO3 → 2KCl + 3O2" },
+  { eq: "Na + Cl2 → NaCl", balanced: "2Na + Cl2 → 2NaCl" },
+  { eq: "Al + O2 → Al2O3", balanced: "4Al + 3O2 → 2Al2O3" },
+  { eq: "H2O2 → H2O + O2", balanced: "2H2O2 → 2H2O + O2" },
+  { eq: "C3H8 + O2 → CO2 + H2O", balanced: "C3H8 + 5O2 → 3CO2 + 4H2O" },
+  { eq: "S + O2 → SO2", balanced: "S + O2 → SO2" },
+  { eq: "Mg + HCl → MgCl2 + H2", balanced: "Mg + 2HCl → MgCl2 + H2" },
+  { eq: "Zn + HCl → ZnCl2 + H2", balanced: "Zn + 2HCl → ZnCl2 + H2" },
+  { eq: "AgNO3 + NaCl → AgCl + NaNO3", balanced: "AgNO3 + NaCl → AgCl + NaNO3" }
+];
 
-      options.forEach(symbol => {
-        let btn = document.createElement("button");
-        btn.innerText = symbol;
-        btn.onclick = () => checkAnswer(symbol, btn);
-        choicesDiv.appendChild(btn);
-      });
+/* ---------- Utility helpers ---------- */
+function sample(arr, n=1){
+  const copy = arr.slice();
+  const output=[];
+  for(let i=0;i<n;i++){
+    if(copy.length===0) break;
+    const idx=Math.floor(Math.random()*copy.length);
+    output.push(copy.splice(idx,1)[0]);
+  }
+  return n===1?output[0]:output;
+}
+
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+/* create wrong options for periodic questions */
+function makePeriodicChoices(correctObj, mode){
+  // mode: "name-to-symbol" or "symbol-to-name" or "name-to-number"
+  const choices=[ ];
+  if(mode==="name-to-symbol"){
+    choices.push(correctObj.symbol);
+    // fill with other symbols
+    while(choices.length<4){
+      const c = sample(elements).symbol;
+      if(!choices.includes(c)) choices.push(c);
     }
-
-    function checkAnswer(answer, btn) {
-      const result = document.getElementById("result");
-      const ding = document.getElementById("ding");
-
-      if (answer === currentQuestion.symbol) {
-        result.innerText = "✅ Correct!";
-        result.style.color = "#00ff88";
-        btn.style.background = "linear-gradient(135deg, #00ff88, #4facfe)";
-        score++;
-        ding.currentTime = 0; // reset sound
-        ding.play(); // play immediately
-      } else {
-        result.innerText = `❌ Wrong! The correct answer is ${currentQuestion.symbol}`;
-        result.style.color = "#ff5555";
-        btn.style.background = "linear-gradient(135deg, #ff5555, #4facfe)";
-      }
-
-      document.getElementById("score").innerText = score;
-
-      // Wait before showing next question
-      setTimeout(newQuestion, 1500);
+  } else if(mode==="symbol-to-name"){
+    choices.push(correctObj.name);
+    while(choices.length<4){
+      const c = sample(elements).name;
+      if(!choices.includes(c)) choices.push(c);
     }
+  } else if(mode==="name-to-number"){
+    choices.push(String(correctObj.num));
+    while(choices.length<4){
+      const c = String(sample(elements).num);
+      if(!choices.includes(c)) choices.push(c);
+    }
+  }
+  return shuffle(choices);
+}
 
-    // Handle Start Button
-    document.getElementById("startBtn").addEventListener("click", () => {
-      document.getElementById("startBtn").style.display = "none";
-      document.getElementById("game").style.display = "block";
-      const bgMusic = document.getElementById("bgMusic");
-      bgMusic.volume = 0.3;
-      bgMusic.play(); // start after user interaction
-      newQuestion();
+/* create choices for balancing: include correct balanced string and generate plausible wrongs by tweaking coefficients */
+function makeBalancingChoices(correctStr){
+  const choices = [correctStr];
+  // basic tweaks: increase/decrease leading coefficients, swap small numbers
+  function tweak(s){
+    // find matches of digits and adjust
+    return s.replace(/\d+/g, m => {
+      const n = parseInt(m,10);
+      const deltas=[-1,1,2,-2];
+      const d = sample(deltas);
+      const nn = Math.max(1, n + d);
+      return String(nn);
     });
-  </script>
+  }
+  // add several unique tweaks
+  let tries=0;
+  while(choices.length<4 && tries<20){
+    const t = tweak(correctStr);
+    if(!choices.includes(t)) choices.push(t);
+    tries++;
+  }
+  // fallback add some rearranged versions
+  if(choices.length<4){
+    choices.push(correctStr.replace(/\s/g,"")); // ugly fallback
+  }
+  return shuffle(choices);
+}
+
+/* ---------- Game State ---------- */
+let currentMode=null;
+let score=0;
+let currentQuestion=null;
+const bgMusic = document.getElementById('bgMusic');
+const dingSound = document.getElementById('dingSound');
+
+/* ---------- DOM refs ---------- */
+const introDiv = document.getElementById('intro');
+const menuDiv = document.getElementById('menu');
+const gameDiv = document.getElementById('game');
+const endDiv = document.getElementById('end');
+const questionEl = document.getElementById('question');
+const choicesEl = document.getElementById('choices');
+const feedbackEl = document.getElementById('feedback');
+const scoreValEl = document.getElementById('scoreVal');
+const finalScoreEl = document.getElementById('finalScore');
+const letsPlayBtn = document.getElementById('letsPlay');
+
+/* ---------- Intro / Music ---------- */
+letsPlayBtn.addEventListener('click', ()=>{
+  introDiv.style.display='none';
+  menuDiv.style.display='block';
+  // start BG music on user interaction
+  bgMusic.volume = 0.35;
+  bgMusic.play().catch(()=>{/* blocked until user interacts — but we already have one */});
+});
+
+/* ---------- Start / Back / End / Restart ---------- */
+function startGame(mode){
+  currentMode = mode;
+  menuDiv.style.display = 'none';
+  gameDiv.style.display = 'block';
+  score = 0;
+  scoreValEl.innerText = score;
+  feedbackEl.innerText = '';
+  nextQuestion();
+}
+
+function backToMenu(){
+  gameDiv.style.display = 'none';
+  menuDiv.style.display = 'block';
+  // pause music but keep it ready
+  bgMusic.pause();
+  bgMusic.currentTime = 0;
+}
+
+function endGame(){
+  gameDiv.style.display = 'none';
+  endDiv.style.display = 'block';
+  finalScoreEl.innerText = "Your Score: " + score;
+  // stop music
+  bgMusic.pause();
+  bgMusic.currentTime = 0;
+}
+
+function restartToMenu(){
+  endDiv.style.display='none';
+  menuDiv.style.display='block';
+}
+
+/* ---------- Question logic: infinite random draws ---------- */
+
+function nextQuestion(){
+  feedbackEl.innerText = '';
+  // choose a question depending on mode
+  if(currentMode === 'elements'){
+    // choose random element and random question type
+    const el = sample(elements);
+    const qtype = sample(["name-to-symbol","symbol-to-name","name-to-number"]);
+    if(qtype==="name-to-symbol"){
+      currentQuestion = { prompt:`What is the symbol for ${el.name}?`, correct: el.symbol, choices: makePeriodicChoices(el,"name-to-symbol") };
+    } else if(qtype==="symbol-to-name"){
+      currentQuestion = { prompt:`Which element has the symbol ${el.symbol}?`, correct: el.name, choices: makePeriodicChoices(el,"symbol-to-name") };
+    } else {
+      currentQuestion = { prompt:`What is the atomic number of ${el.name}?`, correct: String(el.num), choices: makePeriodicChoices(el,"name-to-number") };
+    }
+    renderQuestion();
+  }
+  else if(currentMode === 'astronomy'){
+    const q = sample(astronomy);
+    currentQuestion = { prompt:q.q, correct:q.a, choices: shuffle(q.options.slice()) };
+    renderQuestion();
+  }
+  else if(currentMode === 'biology'){
+    const q = sample(biology);
+    currentQuestion = { prompt:q.q, correct:q.a, choices: shuffle(q.options.slice()) };
+    renderQuestion();
+  }
+  else if(currentMode === 'balancing'){
+    const q = sample(balancingBank);
+    // create options (correct balanced string + distractors)
+    const options = makeBalancingChoices(q.balanced);
+    currentQuestion = { prompt: `Balance: ${q.eq}`, correct: q.balanced, choices: options };
+    renderQuestion();
+  }
+  else {
+    // fallback
+    currentQuestion = { prompt:"No mode selected", correct:"", choices:[]};
+    renderQuestion();
+  }
+}
+
+function renderQuestion(){
+  questionEl.innerText = currentQuestion.prompt;
+  choicesEl.innerHTML = "";
+  currentQuestion.choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = "choice-btn";
+    btn.innerText = choice;
+    btn.onclick = () => handleChoice(btn, choice);
+    choicesEl.appendChild(btn);
+  });
+}
+
+/* ---------- Answer handler: immediate feedback + auto-next when correct ---------- */
+let awaiting = false;
+function handleChoice(btn, choice){
+  if(awaiting) return;
+  awaiting = true;
+  const correct = currentQuestion.correct;
+  if(choice === correct){
+    feedbackEl.style.color = 'lightgreen';
+    feedbackEl.innerText = '✅ Correct!';
+    score++;
+    scoreValEl.innerText = score;
+    // play ding immediately
+    dingSound.currentTime = 0;
+    dingSound.play().catch(()=>{});
+    // highlight button briefly
+    btn.style.background = 'linear-gradient(45deg,#8fffb8,#4facfe)';
+    btn.style.color = '#111';
+    setTimeout(()=>{ awaiting=false; nextQuestion(); }, 700); // auto-next quicker
+  } else {
+    feedbackEl.style.color = 'salmon';
+    feedbackEl.innerText = `❌ Incorrect! Correct: ${correct}`;
+    // visual wrong
+    btn.style.background = 'linear-gradient(45deg,#ff7b7b,#ff4d4d)';
+    btn.style.color = '#111';
+    setTimeout(()=>{ awaiting=false; nextQuestion(); }, 1200); // still auto-next
+  }
+}
+
+/* ---------- Canvas: flying atoms (multicolored) ---------- */
+const canvas = document.getElementById('atomBackground');
+const ctx = canvas.getContext('2d');
+function resizeCanvas(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const particles = [];
+const particleCount = Math.max(30, Math.floor((innerWidth*innerHeight)/90000)); // scale with screen
+const colors = ['rgba(0,255,234,0.7)','rgba(255,0,255,0.7)','rgba(0,180,255,0.7)','rgba(120,255,120,0.7)'];
+for(let i=0;i<particleCount;i++){
+  particles.push({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    r: Math.random()*3+1.5,
+    dx: (Math.random()-0.5)*(0.6 + Math.random()*1.2),
+    dy: (Math.random()-0.5)*(0.6 + Math.random()*1.2),
+    c: sample(colors)
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(const p of particles){
+    ctx.beginPath();
+    ctx.fillStyle = p.c;
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fill();
+    // small orbiting electrons: draw ring
+    ctx.beginPath();
+    ctx.strokeStyle = p.c.replace('0.7','0.12');
+    ctx.lineWidth = 1;
+    ctx.arc(p.x + Math.sin(performance.now()/500 + p.x)*6, p.y + Math.cos(performance.now()/500 + p.y)*6, p.r*1.6, 0, Math.PI*2);
+    ctx.stroke();
+
+    p.x += p.dx; p.y += p.dy;
+    if(p.x< -10) p.x = canvas.width+10;
+    if(p.x>canvas.width+10) p.x = -10;
+    if(p.y< -10) p.y = canvas.height+10;
+    if(p.y>canvas.height+10) p.y = -10;
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+
+/* ---------- Keyboard: allow quick exit (Escape) ---------- */
+window.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    // End and go to menu
+    backToMenu();
+  }
+});
+
+/* ---------- Expose functions for buttons ---------- */
+window.startGame = startGame;
+window.backToMenu = backToMenu;
+window.endGame = endGame;
+window.restartToMenu = restartToMenu;
+
+</script>
 </body>
 </html>
